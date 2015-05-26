@@ -3,15 +3,185 @@
 <% end %>
 <% page_title "#{@adjective.capitalize} Checks" %>
 
+<%
+   require_js  'underscore'
+   require_js  'jquery-1.10.2'
+   require_js  'backbone'
+   require_js  'backbone.jsonapi'
+   require_js  'bootstrap'
+
+   require_js  'flapjack'
+   require_js  'modules/mass_checks'
+%>
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    var MassChecks = flapjack.module("mass_checks");
+    MassChecks.start ();
+  });
+</script>
+
+<script type="text/template" id="decommission-checks-form-template">
+  <form action="<%= @base_url %>checks/_multiple" method="post" class="decommission-checks-form" style="visibility:hidden">
+    <input type='hidden' name='_method' value='delete'>
+    <input type='hidden' name='entity_checks' value="<@- entity_checks @>">
+  </form>
+</script>
+
+<script type="text/template" id="acknowledge-checks-form-template">
+    <div id="add-unscheduled-maintenance" class="alert alert-warning">
+      <h4>Acknowledge failing checks</h4>
+      <form action="<%= @base_url %>acknowledgements/_multiple" method="post" class="form-horizontal">
+        <div class="form-group">
+          <div class="col-sm-12 text-left">
+            <label class="col-sm-3 control-label" for="summary">Summary</label>
+            <div class="col-sm-9">
+              <input type='hidden' name='entity_checks' value="<@- entity_checks @>">
+              <input type="text" class="form-control" name="summary" value=""/>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="col-sm-12">
+            <label class="col-sm-3 control-label" for="duration">Duration</label>
+            <div class="col-sm-9">
+              <input class="col-sm-9 form-control" type="text" name="duration" value="2 hours"/>
+              <span class="help-block">
+                e.g. "5 hours"
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="col-sm-12">
+            <div class="col-sm-offset-3 col-sm-9">
+              <button type="submit" class="btn btn-warning">
+                Acknowledge
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+</script>
+
+<script type="text/template" id="unacknowledge-checks-form-template">
+
+    <form action="<%= @base_url %>end_unscheduled_maintenance/_multiple" method="post" class="form-horizontal" role="form">
+
+      <div class="row">
+        <div class="col-md-offset-3 col-md-9">
+          <input type='hidden' name='entity_checks' value="<@- entity_checks @>">
+          <p class="form-control-static">
+            <button id="end-unscheduled-maintenance" type="submit" class="btn btn-danger">End Unscheduled Maintenance (Unacknowledge)</button>
+          </p>
+        </div>
+      </div>
+
+    </form>
+</script>
+
+<script type="text/template" id="schedule-maintenance-checks-form-template">
+  <div class="panel-heading">
+    <h4 class="panel-title">Add Scheduled Maintenance</h4>
+  </div>
+  <div class="panel-body">
+    <form action="<%= @base_url %>scheduled_maintenances/_multiple" method="post" role="form" class="form-horizontal">
+
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="start_time">Start time:</label>
+        <div class="col-sm-9">
+          <input type='hidden' name='entity_checks' value="<@- entity_checks @>">
+          <input type="text" name="start_time" class="form-control" size="20" maxlength="80" value="">
+                <span class="help-block">
+                  e.g. "today 4pm", "two hours hence", "friday 2pm", "2012-01-28 13:00"
+                </span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="duration">Duration:</label>
+        <div class="col-sm-9">
+          <input type="text" name="duration" class="form-control" size="20" maxlength="80" value="">
+                <span class="help-block">
+                  e.g. "1 hour", "2:30:00", "three days", etc
+                </span>
+        </div>
+      </div>
+
+      <div class="col-sm-9 col-md-offset-2">
+        <div class="alert alert-info">
+          Times given will be interpreted in the local timezone of
+          <span class="alert-link"><%= h(local_timezone) %></span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="summary">Summary:</label>
+        <div class="col-sm-9">
+          <input type="text" name="summary" class="form-control" size="80" maxlength="160" value="">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="col-sm-2"></div>
+        <div class="col-sm-9">
+          <button type="submit" class="btn btn-success">Save</button>
+        </div>
+      </div>
+    </form><!-- form-horizontal-->
+
+  </div><!-- panel-body -->
+</script>
+
+<script type="text/template" id="unschedule-maintenance-checks-form-template">
+  <form action="<%= @base_url %>scheduled_maintenances/_multiple" method="post">
+    <input type="hidden" name="_method" value="delete">
+    <input type='hidden' name='entity_check_starts' value="<@- entity_check_starts @>">
+    <button type="submit" class="btn btn-danger">Delete scheduled maintenance</button>
+  </form>
+</script>
+
+
 <div class="page-header">
   <h2><%= @adjective.capitalize %> Checks</h2>
 </div>
 
-<p><%= h @count_failing_checks %> failing out of <%= h @count_current_checks %></p>
+<div class="row">
+  <div class="col-md-9"><%= h @count_failing_checks %> failing out of <%= h @count_current_checks %></p></div>
+  <div class="col-md-3" id="mass-check-actions">
+    <div class="dropdown pull-right">
+      <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">Mass actions
+        <span class="caret"></span></button>
+      <ul class="dropdown-menu">
+        <li><a href="#" class="decommission-checks">Decommission checks</a></li>
+        <li><a href="#" class="acknowledge-checks">Acknowledge checks</a></li>
+        <li><a href="#" class="unacknowledge-checks">Unacknowledge checks</a></li>
+        <li><a href="#" class="schedule-maintenance-checks">Schedule maintenance</a></li>
+        <li><a href="#" class="unschedule-maintenance-checks">Delete scheduled maintenance</a></li>
+      </ul>
+    </div>
+  </div>
+  <div id="mass-check-expand">
+    <!-- We will expand here the forms needed by the mass checks-->
+  </div>
+</div>
 
-<table class="table table-bordered table-hover table-condensed tablesorter">
+<table class="table table-bordered table-hover table-condensed tablesorter" id="checks-table">
   <thead>
     <tr>
+      <th class="filter-false filter-select-nosort">
+        <div class="dropdown">
+          <button class="dropdown-toggle" type="button" data-toggle="dropdown">
+            <span class="caret"></span></button>
+          <ul class="dropdown-menu">
+            <li><a href="#" class="select-all">All</a></li>
+            <li><a href="#" class="select-none">None</a></li>
+          </ul>
+        </div>
+      </th>
       <th data-placeholder="e.g. app[1-3]*">Entity</th>
       <th data-placeholder="e.g. disk">Check</th>
       <th data-placeholder="e.g. critical">State</th>
@@ -25,7 +195,7 @@
     <% @entities_sorted.each do |entity| %>
       <% row_entity = nil %>
       <% entity_link = @base_url + "entity/" << u(entity) %>
-      <% @states[entity].each do |check, status, summary, changed, updated, in_unscheduled_outage, in_scheduled_outage, notified| %>
+      <% @states[entity].each do |check, status, summary, changed, updated, acknowledgement_id, scheduled_maintenance_start, notified| %>
         <%
           row_colour = case status
           when 'critical', 'unknown'
@@ -41,14 +211,17 @@
         <tr class="<%= row_colour %>">
         <% unless row_entity && entity == row_entity %>
           <td>
+            <input type="checkbox" class="check-selector" for_entity_check="<%= h entity %>:<%= h check %>" status="<%= status %>" acknowledgement_id="<%= acknowledgement_id %>" scheduled_maintenance_start="<%= scheduled_maintenance_start %>" >
+          </td>
+          <td>
             <a href="<%= entity_link %>"><%= h entity %></a>
           </td>
         <% end %>
           <td><a href="<%= check_link %>" title="check detail"><%= h check %></a></td>
           <td class="<%= status %>">
             <%= h status.upcase %>
-            <% if in_unscheduled_outage%> (Ack'd)<% end %>
-            <% if in_scheduled_outage %> (Sched)<% end %>
+            <% if acknowledgement_id %> (Ack'd)<% end %>
+            <% if scheduled_maintenance_start %> (Sched)<% end %>
           </td>
           <td><div class='check_summary'><%= h summary %></div></td>
           <td><%= h changed %></td>
