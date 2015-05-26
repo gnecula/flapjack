@@ -116,13 +116,19 @@ module Flapjack
         contents   = message.contents.merge(notification_contents)
 
         if message.rollup
+          now = Time.now.to_i
+
           rollup_alerts = message.contact.alerting_checks_for_media(media_type).inject({}) do |memo, alert|
             ec = Flapjack::Data::EntityCheck.for_event_id(alert, :redis => @redis)
             last_change = ec.last_change
+            last_notified_for_state = ec.last_notification_for_state(ec.state.to_sym)
+            last_notified_for_state &&= last_notified_for_state[:timestamp]
+
             memo[alert] = {
-              'duration' => last_change ? (Time.now.to_i - last_change) : nil,
+              'duration' => last_change ? (now - last_change) : nil,
               'state'    => ec.state,
-              'summary'  => ec.summary
+              'summary'  => ec.summary,
+              'last_notified_state_ago' => last_notified_for_state ? (now - last_notified_for_state) : nil
             }
             memo
           end
