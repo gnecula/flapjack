@@ -144,7 +144,16 @@
   require_js  'modules/contact'
   require_js  'modules/entity'
   require_js  'modules/medium'
+  require_js  'modules/contact_actions'
 %>
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    var ContactActions = flapjack.module("contact_actions");
+    ContactActions.start ();
+  });
+</script>
+
 
 <div id="data-api-url" data-api-url="<%= @api_url %>">
   <div class="page-header">
