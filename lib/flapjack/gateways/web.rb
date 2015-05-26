@@ -203,6 +203,29 @@ module Flapjack
         erb 'checks.html'.to_sym
       end
 
+      get '/checks_failing_unacknowledged' do
+        check_stats
+        @adjective = 'alerting'
+
+        checks_by_entity = Flapjack::Data::EntityCheck.find_current_names_failing_by_entity(:redis => redis)
+        @states = checks_by_entity.keys.inject({}) do |result, entity|
+          result[entity] = checks_by_entity[entity].sort.inject([]) do |accum, check|
+            state = entity_check_state(entity, check)
+            logger.info("#{entity}/#{check}: #{state}")
+            if state[4].nil? and state[5].nil?
+              accum + [[check] + state]
+            else
+              accum
+            end
+          end
+          logger.info("#{entity}: #{result}")
+          result
+        end
+        @entities_sorted = checks_by_entity.keys.sort
+
+        erb 'checks.html'.to_sym
+      end
+
       get '/self_stats' do
         logger.debug "calculating self_stats"
         self_stats
@@ -345,6 +368,43 @@ module Flapjack
         redirect back
       end
 
+
+      post '/acknowledgements/_multiple' do
+        @summary            = params[:summary]
+
+        dur = ChronicDuration.parse(params[:duration] || '')
+        @duration = (dur.nil? || (dur <= 0)) ? (4 * 60 * 60) : dur
+
+        entity_check_names = params[:entity_checks]
+        entity_check_names.split(',').each do |entity_check_name|
+          entity_name, check_name = entity_check_name.split(':')
+          entity_check = get_entity_check(entity_name, check_name)
+          halt(404, "Could not find check '#{entity_check_name}'") if entity_check.nil?
+
+          ack = Flapjack::Data::Event.create_acknowledgement(
+              entity_name, check_name,
+              :summary => (@summary || ''),
+              :acknowledgement_id => nil,
+              :duration => @duration,
+              :redis => redis)
+        end
+
+        redirect back
+      end
+
+      post '/end_unscheduled_maintenance/_multiple' do
+        entity_check_names = params[:entity_checks]
+        entity_check_names.split(',').each do |entity_check_name|
+          entity_name, check_name = entity_check_name.split(':')
+          entity_check = get_entity_check(entity_name, check_name)
+          halt(404, "Could not find check '#{entity_check_name}'") if entity_check.nil?
+
+          entity_check.end_unscheduled_maintenance(Time.now.to_i)
+        end
+
+        redirect back
+      end
+
       # FIXME: there is bound to be a more idiomatic / restful way of doing this
       # (probably using 'delete' or 'patch')
       post '/end_unscheduled_maintenance/:entity/:check' do
@@ -374,6 +434,27 @@ module Flapjack
         redirect back
       end
 
+      # create scheduled maintenance
+      post '/scheduled_maintenances/_multiple' do
+        start_time = Chronic.parse(params[:start_time]).to_i
+        halt(400, "Start time '#{params[:start_time]}' parsed to 0") if start_time == 0
+        duration   = ChronicDuration.parse(params[:duration])
+        summary    = params[:summary]
+
+        entity_check_names = params[:entity_checks]
+        entity_check_names.split(',').each do |entity_check_name|
+          entity_name, check_name = entity_check_name.split(':')
+          entity_check = get_entity_check(entity_name, check_name)
+
+          halt(404, "Could not find check '#{params[:entity]}:#{params[:check]}'") if entity_check.nil?
+
+          entity_check.create_scheduled_maintenance(start_time, duration,
+                                                    :summary => summary)
+        end
+
+        redirect back
+      end
+
       # delete a scheduled maintenance
       delete '/scheduled_maintenances/:entity/:check' do
         entity_check = get_entity_check(params[:entity], params[:check])
@@ -383,12 +464,38 @@ module Flapjack
         redirect back
       end
 
+      delete '/scheduled_maintenances/_multiple' do
+        entity_check_names = params[:entity_check_starts]
+        entity_check_names.split(',').each do |entity_check_name_start|
+          entity_name, check_name, start_time = entity_check_name_start.split(':')
+          entity_check = get_entity_check(entity_name, check_name)
+          halt(404, "Could not find check '#{entity_name}:#{check_name}'") if entity_check.nil?
+
+          entity_check.end_scheduled_maintenance(start_time.to_i)
+        end
+
+        redirect back
+      end
+
       # delete a check (actually just disables it)
       delete '/checks/:entity/:check' do
         entity_check = get_entity_check(params[:entity], params[:check])
         halt(404, "Could not find check '#{params[:entity]}:#{params[:check]}'") if entity_check.nil?
 
         entity_check.disable!
+        redirect back
+      end
+
+      # delete multiple check (actually just disables it)
+      delete '/checks/_multiple' do
+        entity_check_names = params[:entity_checks]
+        entity_check_names.split(',').each do |entity_check_name|
+          entity_name, check_name = entity_check_name.split(':')
+          entity_check = get_entity_check(entity_name, check_name)
+          halt(404, "Could not find check '#{entity_check_name}'") if entity_check.nil?
+
+          entity_check.disable!
+        end
         redirect back
       end
 
@@ -456,12 +563,15 @@ module Flapjack
         last_notified = ln ? (ChronicDuration.output(Time.now.to_i - ln.to_i,
                                :format => :short, :keep_zero => true, :units => 2) || '0s') + ", #{latest_notif[0]}" : 'never'
 
+        current_scheduled_maintenance_start = entity_check.current_maintenance(:scheduled => true)
+        current_scheduled_maintenance_start &&= current_scheduled_maintenance_start[:start_time]
+
         [(entity_check.state       || '-'),
          (summary                  || '-'),
          last_change,
          last_update,
-         entity_check.in_unscheduled_maintenance?,
-         entity_check.in_scheduled_maintenance?,
+         (entity_check.in_unscheduled_maintenance? ? entity_check.ack_hash : nil),
+         current_scheduled_maintenance_start,
          last_notified
         ]
       end
