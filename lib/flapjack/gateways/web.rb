@@ -330,6 +330,8 @@ module Flapjack
         @check_initial_failure_delay_is_default = entity_check.initial_failure_delay ? false : true
         @check_repeat_failure_delay_is_default  = entity_check.repeat_failure_delay  ? false : true
 
+        @tags = ( entity_check.tags.is_a?(Set) ? entity_check.tags.to_a : entity_check.tags ) || []
+
         @last_notifications         = last_notification_data(entity_check)
 
         @scheduled_maintenances     = entity_check.maintenances(nil, nil, :scheduled => true)

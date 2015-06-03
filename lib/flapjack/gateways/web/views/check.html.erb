@@ -306,6 +306,22 @@
 </div>
 
 <div class="row">
+  <div id="tags" class="col-md-6">
+    <a name="tags"></a>
+    <h3>Tags</h3>
+    <table class="table table-hover table-condensed">
+
+      <tr>
+        <td>Tags:</td>
+        <td><%= h(@tags.join(","))%>
+        </td>
+      </tr>
+
+    </table>
+  </div>
+</div>
+
+<div class="row">
   <div id="scheduled-maintenance-periods" class="col-md-12">
     <a name="scheduled_maintenance_periods"></a>
     <h3>Scheduled Maintenance Periods</h3>
