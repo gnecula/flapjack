@@ -78,19 +78,21 @@ module Flapjack
             @logger.debug("processing pagerduty notification service_key: #{alert.address}, entity: #{alert.entity}, " +
                           "check: '#{alert.check}', state: #{alert.state}, summary: #{alert.summary}")
 
-            message_template_erb, message_template =
-              load_template(@config['templates'], 'alert',
-                            'text', File.join(File.dirname(__FILE__), 'pagerduty'))
-
             @alert = alert
             bnd    = binding
 
+            # Construct most of the PagerDuty event from a template
+            data_template_erb, data_template =
+                load_template(@config['templates'], 'alert_data',
+                              'json', File.join(File.dirname(__FILE__), 'pagerduty'))
             begin
-              message = message_template_erb.result(bnd).chomp
+              data_text = data_template_erb.result(bnd).chomp
+              @logger.debug("created pagerduty data #{data_text}")
+              pagerduty_event = JSON.parse(data_text)
             rescue => e
               @logger.error "Error while executing the ERB for a pagerduty message, " +
-                "ERB being executed: #{message_template}"
-              raise
+                                "ERB being executed: #{data_template}\n#{e}"
+              pagerduty_event = {}
             end
 
             pagerduty_type = case alert.type
@@ -103,14 +105,24 @@ module Flapjack
             when 'test'
               'trigger'
             end
+            # Add in the mandatory keys
+            pagerduty_event.merge!({'service_key'  => alert.address,
+                                    'incident_key' => alert.event_id,
+                                    'event_type'   => pagerduty_type})
 
-            # Setting the HOSTNAME and the SERVICE makes them visible in the Pagerduty UI
-            pagerduty_event = { 'service_key'  => alert.address,
-                                'incident_key' => alert.event_id,
-                                'event_type'   => pagerduty_type,
-                                'description'  => message,
-                                'details'      => {'HOSTNAME' => alert.entity,
-                                                   'SERVICE' => alert.check}}
+            if ! pagerduty_event.has_key?('description')
+              message_template_erb, message_template =
+                  load_template(@config['templates'], 'alert',
+                                'text', File.join(File.dirname(__FILE__), 'pagerduty'))
+
+              begin
+                pagerduty_event['description'] = message_template_erb.result(bnd).chomp
+              rescue => e
+                @logger.error "Error while executing the ERB for a pagerduty message, " +
+                                  "ERB being executed: #{message_template}"
+                raise
+              end
+            end
 
             send_pagerduty_event(pagerduty_event)
             alert.record_send_success!

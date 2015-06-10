@@ -1,6 +1,6 @@
 #!/bin/bash -eu
 #
-# Build a package with the current revision and upload it to /mnt/watchtower/setup
+# Build a package with the current working directory and upload it to /mnt/watchtower/setup/flapjack$1
 
 uploadDir="/mnt/watchtower/setup/flapjack"
 function die {
