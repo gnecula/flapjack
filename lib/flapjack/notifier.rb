@@ -15,6 +15,7 @@ require 'flapjack/utility'
 
 require 'flapjack/gateways/email'
 require 'flapjack/gateways/sms_messagenet'
+require 'flapjack/gateways/slack'
 require 'flapjack/gateways/sms_twilio'
 require 'flapjack/gateways/sms_nexmo'
 require 'flapjack/gateways/aws_sns'

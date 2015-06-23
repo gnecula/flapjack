@@ -7,9 +7,9 @@ describe Flapjack::Gateways::AwsSns, :logger => true do
 
   let(:redis) { double('redis') }
 
-  let(:time) { Time.new(2013, 10, 31, 13, 45) }
+  let(:time_int) { 1383252300 }
 
-  let(:time_str) { Time.at(time).strftime('%-d %b %H:%M') }
+  let(:time_str) { '2013-10-31T20:45:00Z' }
 
   let(:config) { {'region' => 'us-east-1',
                   'access_key' => 'AKIAIOSFODNN7EXAMPLE',
@@ -24,7 +24,7 @@ describe Flapjack::Gateways::AwsSns, :logger => true do
                    'summary'            => 'smile',
                    'last_state'         => 'problem',
                    'last_summary'       => 'frown',
-                   'time'               => time.to_i,
+                   'time'               => time_int,
                    'address'            => 'arn:aws:sns:us-east-1:698519295917:My-Topic',
                    'event_id'           => 'example.com:ping',
                    'id'                 => '123456789',
@@ -34,12 +34,22 @@ describe Flapjack::Gateways::AwsSns, :logger => true do
                 }
 
   it "sends an SMS message" do
+    # bad, bad, bad...
+    t = double('time')
+    ut  = double('utc_time')
+    expect(ut).to receive(:strftime).with('%Y-%m-%dT%H:%M:%SZ').and_return(time_str)
+    expect(t).to receive(:utc).and_return(ut)
+    expect(t).to receive(:strftime).with('%-d %b %H:%M').and_return('31 Oct 20:45')
+    expect(Time).to receive(:at).with(time_int).twice.and_return(t)
+
     req = stub_request(:post, "http://sns.us-east-1.amazonaws.com/").
       with(:query => hash_including({'Action'           => 'Publish',
                                      'AWSAccessKeyId'   => config['access_key'],
                                      'TopicArn'         => message['address'],
                                      'SignatureVersion' => '2',
-                                     'SignatureMethod'  => 'HmacSHA256'})).
+                                     'SignatureMethod'  => 'HmacSHA256',
+                                     'Signature'        => '5fWqhmDrZQkQfP7wsxWDdQjzV0BLwm6cZNrNqZ+W/ok=',
+                                     'Timestamp'        => time_str})).
       to_return(:status => 200)
 
     EM.synchrony do
@@ -98,7 +108,7 @@ describe Flapjack::Gateways::AwsSns, :logger => true do
 
     let(:query) { {'TopicArn' => 'HelloWorld',
                    'Action' => 'Publish',
-                   'Message' => 'Hello World'} }
+                   'Message' => 'Hello ~ World'} }
 
     let(:string_to_sign) { Flapjack::Gateways::AwsSns.string_to_sign(method, host, uri, query) }
 
@@ -117,7 +127,7 @@ describe Flapjack::Gateways::AwsSns, :logger => true do
     end
 
     it 'should put the encoded, sorted query-string on the fourth line' do
-      expect(lines[3]).to eq("Action=Publish&Message=Hello%20World&TopicArn=HelloWorld")
+      expect(lines[3]).to eq("Action=Publish&Message=Hello%20~%20World&TopicArn=HelloWorld")
     end
 
   end
