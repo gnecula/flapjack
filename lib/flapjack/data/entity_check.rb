@@ -932,7 +932,8 @@ module Flapjack
 
       def tags_saved
         # The saved tags; a comma-separated array
-        @redis.hget("check:#{@key}", 'tags').split(',')
+        saved = @redis.hget("check:#{@key}", 'tags')
+        saved.nil? ? [] : saved.split(',')
       end
 
       def ack_hash
