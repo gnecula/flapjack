@@ -433,14 +433,14 @@
 
 <div class="row">
   <div id="contacts" class="col-md-8">
-    <h3>Contacts</h3>
+    <h3>Contacts enabled for this check</h3>
     <% if @contacts && !@contacts.empty? %>
       <table class="table table-bordered table-hover table-condensed">
         <tr>
           <th>Name</th>
           <th>Media</th>
         </tr>
-        <% @contacts.sort_by {|c| [c.first_name, c.last_name] }.each do |contact| %>
+        <% @contacts.sort_by {|c| [c.first_name, c.last_name] }.select {|c| !@tags or @tags.include?('contact:'+c.id) }.each do |contact| %>
           <tr>
             <td><a href="<%= @base_url %>contacts/<%= contact.id %>" title="contact details"><%= h contact.name %></a></td>
             <td>
