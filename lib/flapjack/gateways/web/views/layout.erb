@@ -39,22 +39,10 @@
               Summary
             </a>
           </li>
-          <li<%= include_active?('entities') %>>
-            <a title="Entities" href="<%= @base_url %>entities">
-              <i class="fa fa-bullseye fa-lg"></i>
-              Entities
-            </a>
-          </li>
-          <li<%= include_active?('entities_failing') %>>
-            <a title="Failing Entities" href="<%= @base_url %>entities_failing">
-              <i class="fa fa-bullhorn fa-lg"></i>
-              Failing Entities
-            </a>
-          </li>
-          <li<%= include_active?('checks_all') %>>
-            <a title="Checks" href="<%= @base_url %>checks_all">
-              <i class="fa fa-check-circle-o fa-lg"></i>
-              Checks
+          <li<%= include_active?('checks_alerting') %>>
+            <a title="Failing Checks not Acknowledged nor in Maintenance" href="<%= @base_url %>checks_failing_unacknowledged">
+              <i class="fa fa-times-circle-o fa-lg"></i>
+              Unacknowledged Failing Checks
             </a>
           </li>
           <li<%= include_active?('checks_failing') %>>
@@ -63,10 +51,23 @@
               Failing Checks
             </a>
           </li>
-          <li<%= include_active?('checks_alerting') %>>
-            <a title="Failing checks not acknowledged nor in maintenance" href="<%= @base_url %>checks_failing_unacknowledged">
-              <i class="fa fa-times-circle-o fa-lg"></i>
-              Unacknowledged Failing Checks
+          <li<%= include_active?('entities_failing') %>>
+            <a title="Failing Entities" href="<%= @base_url %>entities_failing">
+              <i class="fa fa-bullhorn fa-lg"></i>
+              Failing Entities
+            </a>
+          </li>
+          <li<%= include_active?('entities') %>>
+            <a title="Entities" href="<%= @base_url %>entities">
+              <i class="fa fa-bullseye fa-lg"></i>
+              All Entities
+            </a>
+          </li>
+
+          <li<%= include_active?('checks_all') %>>
+            <a title="Checks" href="<%= @base_url %>checks_all">
+              <i class="fa fa-check-circle-o fa-lg"></i>
+              All Checks (<span style="color:red">SLOW !</span>)
             </a>
           </li>
           <li<%= include_active?('contacts') %>>
