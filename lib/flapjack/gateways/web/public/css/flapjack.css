@@ -5,9 +5,7 @@ div.check_summary {
        but we also want wrapping when required by the layout.
     */
     white-space: pre-line; /* Like pre, except it also wraps when necessary, 
-                              and collapses consecutive whitespace */  
-    font-weight: bold;
-    font-family: sans-serif; 
+                              and collapses consecutive whitespace */
 }
 
 div.check_details {
