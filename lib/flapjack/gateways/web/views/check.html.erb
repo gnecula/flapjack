@@ -29,6 +29,11 @@
       <%= state_qualifier %>State:
       <span class="alert-link"><%= @check_state ? h(@check_state.upcase) : '' %></span>
     </div>
+    <div class="">
+      <h3>Description:</h3>
+      <div class='check_description'><%= @check_details %></div>
+    </div>
+
   </div><!-- col-md-6 -->
 
   <div class="col-md-6">
@@ -227,7 +232,6 @@
   <div id="output" class="col-md-6">
     <h3>Output:</h3>
     <div class='check_summary'><%= h @check_summary %></div>
-    <p><%= h @check_details %></p>
     <% if @check_perfdata && @check_perfdata.is_a?(Array) %>
     <h3>Performance Data:</h3>
     <table>
