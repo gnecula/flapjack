@@ -29,9 +29,11 @@
       <%= state_qualifier %>State:
       <span class="alert-link"><%= @check_state ? h(@check_state.upcase) : '' %></span>
     </div>
-    <div class="">
+    <div>
       <h3>Description:</h3>
-      <div class='check_description'><%= @check_details %></div>
+      <div class='check_description'>
+        <%= @check_details %>
+      </div>
     </div>
 
   </div><!-- col-md-6 -->
