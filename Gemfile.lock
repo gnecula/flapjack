@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    flapjack (1.6.0)
+    flapjack (1.6.0.pre.conviva)
       activesupport
       blather (~> 0.8.3)
       chronic
@@ -259,3 +259,6 @@ DEPENDENCIES
   ruby-prof
   simplecov
   webmock
+
+BUNDLED WITH
+   1.10.6
