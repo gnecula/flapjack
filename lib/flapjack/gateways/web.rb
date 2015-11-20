@@ -324,6 +324,8 @@ module Flapjack
 
         @check_initial_failure_delay = entity_check.initial_failure_delay ||
           Flapjack::DEFAULT_INITIAL_FAILURE_DELAY
+        @check_initial_recovery_delay = entity_check.initial_recovery_delay ||
+            Flapjack::DEFAULT_INITIAL_RECOVERY_DELAY
         @check_repeat_failure_delay  = entity_check.repeat_failure_delay  ||
           Flapjack::DEFAULT_REPEAT_FAILURE_DELAY
 

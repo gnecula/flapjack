@@ -228,6 +228,7 @@ module Flapjack
                                   :summary => event.summary, :count => event.counter,
                                   :details => event.details, :perfdata => event.perfdata,
                                   :initial_failure_delay => event.initial_failure_delay,
+                                  :initial_recovery_delay => event.initial_recovery_delay,
                                   :repeat_failure_delay => event.repeat_failure_delay,
                                   :tags => event.tags)
 
